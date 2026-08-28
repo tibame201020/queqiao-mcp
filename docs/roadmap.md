@@ -1,41 +1,50 @@
 # Roadmap
 
-## Phase 0 — External extension contract
+## Phase 0 — External extension contract ✅
 
-Queqiao core:
+Queqiao PR #30 established:
 
-- expose a supported external Extension API/SDK from the published package
-- define version compatibility rules for external extensions
-- define safe host capability(s) needed by downstream MCP transports
-- keep runtime config/secrets external and atomic
+- public Extension API v1
+- Extension Hub install/uninstall
+- Worker attach/detach
+- fixed public `extension` proxy
+- Worker hot reload and `dispose()` lifecycle
 
-Exit: this repository can compile against a supported public Queqiao contract without copying internal types.
+Exit met: `queqiao-mcp` compiles against the public contract without copying or importing private Queqiao packages.
 
-## Phase 1 — Minimal proxy extension
+## Phase 1 — Minimal proxy extension — current
 
-`queqiao-mcp`:
+Implemented:
 
 - Worker-hosted extension
-- one stable public `mcp` proxy tool
+- one internal `mcp` capability reached through Queqiao's stable public proxy
 - validated downstream server config
-- lazy connection manager
-- tool list/search/describe/call
-- Streamable HTTP + stdio
-- cancellation + timeout + bounded result handling
-- metadata cache
-- unit tests and mock MCP integration tests
+- lazy MCP client sessions
+- `servers/search/describe/call/refresh`
+- stdio + Streamable HTTP
+- cancellation/timeout propagation through MCP SDK calls
+- environment-variable references for downstream secrets
+- deterministic real-transport tests
+- Chrome DevTools MCP end-to-end release acceptance
 
-Exit: Queqiao can call at least one remote MCP server and one local stdio MCP server through the same stable proxy surface.
+Before v0.1 release:
+
+- obtain green GitHub Actions on Windows and Ubuntu after the branch is pushed
+- rerun compatibility acceptance against the final Queqiao CLI/release candidate after its CLI contract freezes
+- perform the normal npm release review/publish workflow
+
+Local package smoke tests and pinned-contract Chrome DevTools acceptance are complete; see `docs/validation/v0.1-readiness-2026-08-28.md`.
 
 ## Phase 2 — Production lifecycle
 
-- reconnect policy
-- health checks
+- persistent metadata cache
 - `tools/list_changed`
+- bounded reconnect/backoff policy
+- health/status diagnostics
 - idle shutdown
-- legacy SSE compatibility
-- server status / diagnostics
-- secure credential references and OAuth design where needed
+- result-size policy
+- richer credential/OAuth configuration where downstream servers require it
+- legacy SSE only if real compatibility demand exists
 
 ## Phase 3 — Selective direct tools
 
@@ -46,6 +55,6 @@ Exit: Queqiao can call at least one remote MCP server and one local stdio MCP se
 
 ## Phase 4 — Management UX
 
-- Queqiao CLI install/config/status commands
-- Dashboard MCP server management surface
-- import/detect common MCP configuration formats only when provenance and secret handling are safe
+- Queqiao Dashboard MCP server management surface
+- config editing/validation UI
+- import/detect common MCP configuration formats when provenance and secret handling are safe

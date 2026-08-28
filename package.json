@@ -1,0 +1,123 @@
+{
+  "name": "queqiao-mcp",
+  "version": "0.1.0",
+  "description": "Token-efficient MCP client extension for Queqiao",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=22.19 <25"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@tibame201020/queqiao": "https://codeload.github.com/tibame201020/Queqiao/tar.gz/15eca5da982c6008d56a473f630ec0e4a2900285",
+    "@types/node": "^24.10.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  },
+  "queqiao": {
+    "apiVersion": 1,
+    "module": "./dist/index.js",
+    "manifest": {
+      "id": "dev.queqiao.mcp",
+      "version": "0.1.0",
+      "displayName": "Queqiao MCP Adapter",
+      "host": {
+        "kind": "worker"
+      },
+      "ordering": {
+        "requires": [],
+        "before": [],
+        "after": []
+      },
+      "contributions": [
+        {
+          "operation": "register",
+          "tool": "mcp",
+          "visibility": "internal",
+          "title": "Downstream MCP",
+          "description": "Search, describe, and call tools exposed by downstream MCP servers without expanding the public Queqiao manifest.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "workspaceId": {
+                "type": "string"
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "servers",
+                  "search",
+                  "describe",
+                  "call",
+                  "refresh"
+                ]
+              },
+              "server": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "arguments": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              }
+            },
+            "required": [
+              "workspaceId",
+              "operation"
+            ]
+          },
+          "requiredCapabilities": [],
+          "risk": "execute",
+          "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true,
+            "idempotentHint": false
+          }
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tibame201020/queqiao-mcp.git"
+  },
+  "license": "MIT"
+}
