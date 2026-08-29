@@ -68,6 +68,8 @@ try {
         npm ci --no-audit --no-fund
         if ($LASTEXITCODE -ne 0) { throw "Queqiao npm ci failed" }
       }
+      npm run build
+      if ($LASTEXITCODE -ne 0) { throw "Queqiao workspace build failed" }
       npm run build:package
       if ($LASTEXITCODE -ne 0) { throw "Queqiao package build failed" }
     } finally { Pop-Location }
@@ -99,11 +101,18 @@ try {
   $registryInfo = Get-Content $registryState -Raw | ConvertFrom-Json
   $env:npm_config_registry = $registryInfo.registry
 
-  Invoke-Queqiao @("worker", "setup", "--name", "mcp-e2e", "--environment-id", "windows", "--port", [string]$workerPort) | Out-Null
-  Invoke-Queqiao @("extension", "install", "npm:queqiao-mcp", "--worker", "mcp-e2e") | Out-Null
-  $workspace = Join-Path $runtimeRoot "workspace"
+  $workspace = Join-Path $runtimeRoot "mcp-e2e-workspace"
   New-Item -ItemType Directory -Force -Path $workspace | Out-Null
-  Invoke-Queqiao @("workspace", "add", "--worker", "mcp-e2e", "--id", "mcp-e2e-workspace", "--root", $workspace, "--name", "MCP E2E Workspace", "--profile", "coding") | Out-Null
+  Push-Location $core
+  try {
+    $bootstrap = & npx --no-install tsx (Join-Path $repo "test-fixtures\bootstrap-queqiao.mts") $core $workerPort $gatewayPort $managementPort $workspace
+    if ($LASTEXITCODE -ne 0) { throw "Queqiao deterministic runtime bootstrap failed" }
+  } finally { Pop-Location }
+  $bootstrapInfo = $bootstrap | ConvertFrom-Json
+  if ($bootstrapInfo.workspaceId -ne "mcp-e2e-workspace") {
+    throw "Unexpected bootstrap Workspace id: $($bootstrapInfo.workspaceId)"
+  }
+  Invoke-Queqiao @("extension", "install", "npm:queqiao-mcp", "--worker", "mcp-e2e") | Out-Null
 
   $chrome = Get-ChromePath
   $mcpConfigPath = Join-Path $localAppData "Queqiao\extensions\mcp\config.json"
@@ -125,25 +134,24 @@ try {
   }
   [IO.File]::WriteAllText($mcpConfigPath, ($mcpConfig | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding($false)))
 
-  Invoke-Queqiao @("worker", "serve", "--name", "mcp-e2e", "--bg") | Out-Null
+  Invoke-Queqiao @("worker", "serve", "--worker", "mcp-e2e", "--bg") | Out-Null
   for ($i = 0; $i -lt 100; $i++) {
     try {
-      $workerStatus = Invoke-Queqiao @("worker", "status", "--name", "mcp-e2e") | ConvertFrom-Json
+      $workerStatus = Invoke-Queqiao @("worker", "status", "--worker", "mcp-e2e", "--json") | ConvertFrom-Json
       if ($workerStatus.health.reachable -and $workerStatus.health.identityMatches) { break }
     } catch {}
     Start-Sleep -Milliseconds 100
   }
   if (!$workerStatus.health.reachable -or !$workerStatus.health.identityMatches) { throw "Worker did not become ready" }
 
-  Invoke-Queqiao @("gateway", "setup", "--name", "mcp-e2e-gateway", "--public-base-url", "http://127.0.0.1:$gatewayPort/", "--port", [string]$gatewayPort, "--management-port", [string]$managementPort) | Out-Null
-  Invoke-Queqiao @("gateway", "serve", "--name", "mcp-e2e-gateway", "--bg") | Out-Null
+  Invoke-Queqiao @("gateway", "serve", "--gateway", "mcp-e2e-gateway", "--bg") | Out-Null
   $join = $null
   for ($i = 0; $i -lt 100 -and !$join; $i++) {
-    try { $join = Invoke-Queqiao @("gateway", "join-token", "--name", "mcp-e2e-gateway") | ConvertFrom-Json }
+    try { $join = Invoke-Queqiao @("gateway", "join-token", "--gateway", "mcp-e2e-gateway", "--expires", "60", "--json") | ConvertFrom-Json }
     catch { Start-Sleep -Milliseconds 100 }
   }
   if (!$join) { throw "Gateway management endpoint did not become ready" }
-  Invoke-Queqiao @("worker", "join", "--name", "mcp-e2e", "--gateway", "http://127.0.0.1:$gatewayPort/", "--token", $join.token, "--endpoint", "http://127.0.0.1:$workerPort/") | Out-Null
+  Invoke-Queqiao @("worker", "join", "--worker", "mcp-e2e", "--join-code", $join.joinCode, "--json") | Out-Null
 
   $env:QUEQIAO_E2E_GATEWAY = "http://127.0.0.1:$gatewayPort/"
   $env:QUEQIAO_E2E_APPROVAL_FILE = Join-Path $localAppData "Queqiao\gateways\mcp-e2e-gateway\data\secrets\oauth-approval.secret"
@@ -155,8 +163,8 @@ try {
   }
   Write-Output $result
 } finally {
-  try { if (Test-Path $queqiao) { Invoke-Queqiao @("worker", "stop", "--name", "mcp-e2e") | Out-Null } } catch {}
-  try { if (Test-Path $queqiao) { Invoke-Queqiao @("gateway", "stop", "--name", "mcp-e2e-gateway") | Out-Null } } catch {}
+  try { if (Test-Path $queqiao) { Invoke-Queqiao @("worker", "stop", "--worker", "mcp-e2e") | Out-Null } } catch {}
+  try { if (Test-Path $queqiao) { Invoke-Queqiao @("gateway", "stop", "--gateway", "mcp-e2e-gateway") | Out-Null } } catch {}
   if ($registryProcess -and !$registryProcess.HasExited) { Stop-Process -Id $registryProcess.Id -Force -ErrorAction SilentlyContinue }
   if ($tarballPath) { Remove-Item $tarballPath -Force -ErrorAction SilentlyContinue }
   Remove-Item $runtimeRoot -Recurse -Force -ErrorAction SilentlyContinue

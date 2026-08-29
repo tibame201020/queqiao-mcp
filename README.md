@@ -6,7 +6,7 @@ Official MCP client extension for [Queqiao](https://github.com/tibame201020/Queq
 
 ## Status
 
-Pre-release v0.1 implementation. The independent Extension contract introduced by Queqiao PR #30 has been dogfooded end-to-end with both synthetic MCP fixtures and the standard [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) server. Current local readiness evidence is recorded in [`docs/validation/v0.1-readiness-2026-08-28.md`](docs/validation/v0.1-readiness-2026-08-28.md).
+v0.1 baseline for Queqiao 0.8.1. The independent Extension contract introduced by Queqiao PR #30 has been validated end-to-end against the released Queqiao 0.8.1 package with both synthetic MCP fixtures and the standard [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) server. Readiness evidence is recorded under [`docs/validation/`](docs/validation/).
 
 Verified acceptance chain:
 
@@ -22,7 +22,7 @@ MCP client / LLM
 
 ## Install
 
-After `queqiao-mcp` is published to npm:
+Install from npm:
 
 ```bash
 queqiao extension install npm:queqiao-mcp --attach-all

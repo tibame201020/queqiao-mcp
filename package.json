@@ -22,7 +22,8 @@
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "prepack": "npm run check"
   },
   "engines": {
     "node": ">=22.19 <25"
@@ -33,7 +34,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
-    "@tibame201020/queqiao": "https://codeload.github.com/tibame201020/Queqiao/tar.gz/15eca5da982c6008d56a473f630ec0e4a2900285",
+    "@tibame201020/queqiao": "0.8.1",
     "@types/node": "^24.10.0",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
@@ -118,6 +119,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tibame201020/queqiao-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tibame201020/queqiao-mcp/issues"
+  },
+  "homepage": "https://github.com/tibame201020/queqiao-mcp#readme",
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT"
 }

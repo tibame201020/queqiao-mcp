@@ -12,7 +12,7 @@ Queqiao PR #30 established:
 
 Exit met: `queqiao-mcp` compiles against the public contract without copying or importing private Queqiao packages.
 
-## Phase 1 — Minimal proxy extension — current
+## Phase 1 — Minimal proxy extension — v0.1 baseline
 
 Implemented:
 
@@ -27,13 +27,13 @@ Implemented:
 - deterministic real-transport tests
 - Chrome DevTools MCP end-to-end release acceptance
 
-Before v0.1 release:
+v0.1 release closure requires:
 
-- obtain green GitHub Actions on Windows and Ubuntu after the branch is pushed
-- rerun compatibility acceptance against the final Queqiao CLI/release candidate after its CLI contract freezes
-- perform the normal npm release review/publish workflow
+- final compatibility acceptance against the released Queqiao 0.8.1 CLI/runtime contract
+- green GitHub Actions on Windows and Ubuntu before merge
+- npm package review from the merged, tagged release commit
 
-Local package smoke tests and pinned-contract Chrome DevTools acceptance are complete; see `docs/validation/v0.1-readiness-2026-08-28.md`.
+The original Extension API readiness evidence is in `docs/validation/v0.1-readiness-2026-08-28.md`; final Queqiao 0.8.1 release-candidate evidence is recorded separately under `docs/validation/`.
 
 ## Phase 2 — Production lifecycle
 
