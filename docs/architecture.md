@@ -2,120 +2,145 @@
 
 ## Goal
 
-Make Queqiao an MCP client through an independent extension, analogous in purpose to `pi-mcp-extension` / `pi-mcp-adapter`, while preserving Queqiao's security model and stable public MCP surface.
+Make Queqiao an MCP client through an independent extension, analogous in purpose to `pi-mcp-extension` / `pi-mcp-adapter`, while preserving Queqiao's stable public MCP surface.
 
 ## Topology
 
 ```text
-AI Client
-  -> Queqiao public MCP server
-     -> native Queqiao tools
-     -> queqiao-mcp extension
-        -> MCP client manager
-           -> stdio MCP server
-           -> Streamable HTTP MCP server
-           -> legacy SSE MCP server (compatibility)
+AI client
+  -> Queqiao public MCP Gateway
+     -> fixed public `extension` proxy
+        -> native Worker
+           -> queqiao-mcp (`mcp` internal capability)
+              -> MCP client manager
+                 -> stdio MCP server
+                 -> Streamable HTTP MCP server
 ```
+
+Gateway remains exposure/routing only. Worker remains the ExtensionHost execution unit. The Extension Hub is package/control-plane state and is not in the request path.
+
+## Queqiao contract
+
+Queqiao PR #30 provides the external Extension API v1:
+
+- public TypeScript declarations at `@tibame201020/queqiao/extension`
+- registry npm Extension Hub install/uninstall
+- Worker attach/detach lifecycle
+- fixed Revision 7 public `extension` proxy
+- generation-based Worker ExtensionHost hot reload
+- last-known-good replacement, request leases, and deferred `dispose()`
+
+`queqiao-mcp` uses the public SDK as a compile-time contract only. Its packed runtime does not import Queqiao internals or bundle another Queqiao host instance.
 
 ## Public surface
 
-The default public surface should remain small and stable. V0 should expose one proxy-style tool rather than registering every downstream tool into the Queqiao deployment manifest.
+`queqiao-mcp` contributes one internal Worker tool named `mcp`. Queqiao's fixed public `extension` proxy exposes it without changing the connector manifest whenever downstream servers change.
 
-Proposed logical operations behind the proxy:
+V0 operations:
 
-- list configured servers / status
-- search cached downstream tools
-- describe one downstream tool
-- call one downstream tool
-- connect / reconnect / disconnect when explicitly requested
+- `servers`
+- `search`
+- `describe`
+- `call`
+- `refresh`
 
-Selected downstream tools may later be promoted to direct Queqiao tools, but promotion is opt-in because each direct tool changes the public tool surface.
+Downstream tools are not promoted to direct public Queqiao tools in v0.
 
 ## Lifecycle
 
-Default lifecycle is lazy:
+1. Load and validate declarative downstream configuration.
+2. `servers` reports configuration without connecting.
+3. Discovery/call creates a downstream MCP client lazily.
+4. The client performs standard MCP `tools/list` and `tools/call` operations.
+5. The session and discovered tool metadata are reused while the server configuration is unchanged.
+6. Configuration changes cause the old client to close before a new session is created.
+7. Queqiao ExtensionHost `dispose()` closes every remaining downstream client.
 
-1. Read validated downstream server configuration.
-2. Load cached metadata without connecting where possible.
-3. Connect only on first call or explicit connect.
-4. Discover paginated tools and cache metadata.
-5. Forward calls and propagate cancellation.
-6. Disconnect idle local servers after a bounded timeout.
-7. Reconnect according to bounded policy where configured.
+V0 has in-memory metadata per active session. Persistent metadata caching, idle eviction, `tools/list_changed`, reconnect backoff, and legacy SSE remain follow-up work.
 
-Future lifecycle modes may include eager and keep-alive.
+## Transports
 
-## Queqiao integration boundary
+### stdio
 
-Current live Queqiao already provides:
+Uses the official MCP TypeScript SDK `StdioClientTransport`. The configured command/argv is executed in the Worker OS environment.
 
-- trusted local-module ExtensionHost
-- global / workspace activation
-- register / extend / replace composition
-- extension ordering
-- declared contribution contract validation
-- Worker-authoritative tool execution
+Windows `.cmd` based launchers can be expressed explicitly through `cmd.exe /c`. Linux/macOS can use their native executable form.
 
-However, the external extension boundary is not yet fully public:
+### Streamable HTTP
 
-1. The published `@tibame201020/queqiao` package currently bundles CLI entry points and does not export a supported Extension API/SDK for third-party TypeScript packages.
-2. Gateway extension targeting exists in configuration schema, but the live runtime currently instantiates ExtensionHost on Worker only.
-3. Tool capabilities currently cover `workspace:read`, `workspace:write`, and `workspace:exec`; there is no explicit outbound-network/downstream-MCP capability contract yet.
+Uses the official MCP TypeScript SDK `StreamableHTTPClientTransport`. Optional headers resolve values from environment-variable references.
 
-These are Queqiao-core prerequisites, not reasons to merge this extension into the core repository.
+Legacy SSE is intentionally not part of v0.
 
-## Host strategy
+## Trust and security boundary
 
-### V0
+Queqiao extensions are trusted plugin code, comparable to VS Code, IntelliJ, or coding-agent extensions. Queqiao does not attempt to syscall-sandbox arbitrary TypeScript extensions.
 
-Run `queqiao-mcp` as a Worker-hosted extension because that is the live supported ExtensionHost path today. `workspaceId` remains the routing/authority anchor.
+Queqiao owns:
 
-### Follow-up
+- explicit install/uninstall and attach/detach intent
+- package metadata/entry-point validation
+- stable public MCP exposure and Gateway→Worker routing
+- Extension contribution contract validation
+- ExtensionHost hot reload and disposal lifecycle
 
-Add Gateway-hosted extension runtime only when remote HTTP MCP aggregation needs a gateway-level lifecycle independent of a Worker. Do not add it merely for symmetry.
+`queqiao-mcp` owns:
 
-## Security rules
+- downstream stdio/network behavior
+- downstream credentials
+- MCP timeout/cancellation handling
+- subprocess/session cleanup
+- validation of its own downstream configuration
 
-The extension must not bypass Queqiao authority by directly using unrestricted `child_process` or ad-hoc process spawning for stdio MCP servers.
-
-The extension must not treat arbitrary outbound HTTP as implicitly trusted. Remote MCP endpoints need an explicit outbound policy/capability boundary before production release.
-
-Secrets and OAuth credentials stay outside source repositories and public MCP results. Downstream MCP configuration must support secret references rather than embedding credentials in committed config.
-
-Cancellation, timeout, concurrency and output/result-size bounds must propagate across the downstream MCP call.
+Secrets stay outside source control. V0 config accepts environment-variable references for stdio environment values and HTTP headers.
 
 ## Configuration
 
-The extension should own downstream MCP server configuration, but reuse Queqiao platform/runtime paths and atomic configuration conventions.
-
-Configuration must be declarative and support at least:
+Each server has:
 
 - server id
 - enabled state
 - transport
-- stdio command/argv OR remote URL
-- environment variables via secret references
-- lifecycle mode
-- per-server tool include/exclude policy
-- optional direct-tool promotion in a later revision
+- timeout
+- stdio command/argv, optional cwd and environment references; or
+- Streamable HTTP URL and optional header references
+
+`QUEQIAO_MCP_CONFIG` overrides the platform default config location.
+
+## Acceptance baseline
+
+Stable unit/integration tests use real MCP transports with deterministic fixtures:
+
+- real stdio child MCP server
+- real loopback Streamable HTTP MCP handler
+
+Release acceptance additionally uses the independent standard `chrome-devtools-mcp` package, pinned to a known version, and exercises the complete path:
+
+```text
+OAuth MCP client
+-> Queqiao Gateway
+-> Worker
+-> extension proxy
+-> queqiao-mcp
+-> chrome-devtools-mcp
+-> headless isolated Chrome
+```
+
+The acceptance assertion calls Chrome DevTools MCP `list_pages` and requires a real browser result.
 
 ## Compatibility inspiration
 
 From `pi-mcp-extension`:
 
-- multi-transport client manager
-- paginated discovery
-- list-changed refresh
-- cancellation propagation
-- reconnection / health checks
-- safe subprocess lifecycle
+- multi-transport MCP client lifecycle
+- cancellation and reconnect-oriented design
+- tool discovery
 
 From `pi-mcp-adapter`:
 
-- one token-efficient proxy tool
-- lazy connections
-- metadata cache
-- search / describe before call
-- optional direct-tool promotion
+- one token-efficient proxy surface
+- lazy connection
+- search/describe before call
+- optional direct-tool promotion later
 
-Queqiao-specific security and deployment rules take precedence over either reference design.
+Queqiao's Extension Hub/Worker/Gateway architecture remains authoritative for integration semantics.
