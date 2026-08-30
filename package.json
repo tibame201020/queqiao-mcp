@@ -1,6 +1,6 @@
 {
-  "name": "queqiao-mcp",
-  "version": "0.1.0",
+  "name": "@tibame201020/queqiao-mcp",
+  "version": "0.1.1",
   "description": "Token-efficient MCP client extension for Queqiao",
   "type": "module",
   "main": "./dist/index.js",
@@ -44,7 +44,7 @@
     "module": "./dist/index.js",
     "manifest": {
       "id": "dev.queqiao.mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "displayName": "Queqiao MCP Adapter",
       "host": {
         "kind": "worker"

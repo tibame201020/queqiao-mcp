@@ -112,7 +112,7 @@ try {
   if ($bootstrapInfo.workspaceId -ne "mcp-e2e-workspace") {
     throw "Unexpected bootstrap Workspace id: $($bootstrapInfo.workspaceId)"
   }
-  Invoke-Queqiao @("extension", "install", "npm:queqiao-mcp", "--worker", "mcp-e2e") | Out-Null
+  Invoke-Queqiao @("extension", "install", "npm:@tibame201020/queqiao-mcp", "--worker", "mcp-e2e") | Out-Null
 
   $chrome = Get-ChromePath
   $mcpConfigPath = Join-Path $localAppData "Queqiao\extensions\mcp\config.json"
