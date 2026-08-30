@@ -12,18 +12,41 @@ const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const tarball = await readFile(tarballPath);
 const shasum = createHash("sha1").update(tarball).digest("hex");
 const integrity = `sha512-${createHash("sha512").update(tarball).digest("base64")}`;
+const metadataPaths = new Set([
+  `/${pkg.name}`,
+  `/${pkg.name.replace("/", "%2f")}`,
+  `/${pkg.name.replace("/", "%2F")}`,
+  `/${encodeURIComponent(pkg.name)}`,
+]);
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://registry.local");
   if (url.pathname === "/shutdown") { res.end("ok"); setImmediate(() => server.close()); return; }
-  if (url.pathname === "/queqiao-mcp" || url.pathname === "/queqiao-mcp/") {
+  if (metadataPaths.has(url.pathname)) {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("registry listener unavailable");
     res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ name: pkg.name, "dist-tags": { latest: pkg.version }, versions: { [pkg.version]: { ...pkg, dist: { shasum, integrity, tarball: `http://127.0.0.1:${address.port}/queqiao-mcp/-/queqiao-mcp-${pkg.version}.tgz` } } } }));
+    res.end(JSON.stringify({
+      name: pkg.name,
+      "dist-tags": { latest: pkg.version },
+      versions: {
+        [pkg.version]: {
+          ...pkg,
+          dist: {
+            shasum,
+            integrity,
+            tarball: `http://127.0.0.1:${address.port}/package.tgz`,
+          },
+        },
+      },
+    }));
     return;
   }
-  if (url.pathname === `/queqiao-mcp/-/queqiao-mcp-${pkg.version}.tgz`) { res.setHeader("content-type", "application/octet-stream"); res.end(tarball); return; }
+  if (url.pathname === "/package.tgz") {
+    res.setHeader("content-type", "application/octet-stream");
+    res.end(tarball);
+    return;
+  }
   try {
     const upstream = await fetch(`https://registry.npmjs.org${url.pathname}${url.search}`, { headers: { accept: req.headers.accept ?? "application/json" } });
     res.statusCode = upstream.status;
@@ -31,7 +54,10 @@ const server = createServer(async (req, res) => {
       if (!["content-encoding", "content-length", "transfer-encoding"].includes(name.toLowerCase())) res.setHeader(name, value);
     });
     res.end(Buffer.from(await upstream.arrayBuffer()));
-  } catch (error) { res.statusCode = 502; res.end(error instanceof Error ? error.message : String(error)); }
+  } catch (error) {
+    res.statusCode = 502;
+    res.end(error instanceof Error ? error.message : String(error));
+  }
 });
 
 await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });

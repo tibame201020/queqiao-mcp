@@ -20,8 +20,12 @@ describe("queqiao-mcp extension contract", () => {
     expect(result.workspaceId).toBe("workspace-a");
   });
 
-  it("keeps package contribution schema aligned with the runtime schema", async () => {
+  it("keeps package and runtime extension contracts aligned", async () => {
     const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+    expect(queqiaoExtension.manifest.id).toBe(packageJson.queqiao.manifest.id);
+    expect(queqiaoExtension.manifest.version).toBe(packageJson.queqiao.manifest.version);
+    expect(packageJson.version).toBe(packageJson.queqiao.manifest.version);
+
     const contribution = packageJson.queqiao.manifest.contributions.find(
       (entry: { operation?: string; tool?: string }) => entry.operation === "register" && entry.tool === "mcp"
     );

@@ -1,12 +1,12 @@
-# queqiao-mcp
+# @tibame201020/queqiao-mcp
 
 Official MCP client extension for [Queqiao](https://github.com/tibame201020/Queqiao).
 
-`queqiao-mcp` lets one Queqiao Worker connect to downstream MCP servers while Queqiao keeps a stable public `extension` proxy tool instead of expanding every downstream tool into the public manifest.
+`@tibame201020/queqiao-mcp` lets one Queqiao Worker connect to downstream MCP servers while Queqiao keeps a stable public `extension` proxy tool instead of expanding every downstream tool into the public manifest.
 
 ## Status
 
-v0.1 baseline for Queqiao 0.8.1. The independent Extension contract introduced by Queqiao PR #30 has been validated end-to-end against the released Queqiao 0.8.1 package with both synthetic MCP fixtures and the standard [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) server. Readiness evidence is recorded under [`docs/validation/`](docs/validation/).
+v0.1 baseline for Queqiao 0.8.1. The canonical npm package is `@tibame201020/queqiao-mcp` starting with v0.1.1; the initial unscoped `queqiao-mcp@0.1.0` remains only as historical bootstrap compatibility. The independent Extension contract introduced by Queqiao PR #30 has been validated end-to-end against the released Queqiao 0.8.1 package with both synthetic MCP fixtures and the standard [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) server. Readiness evidence is recorded under [`docs/validation/`](docs/validation/).
 
 Verified acceptance chain:
 
@@ -25,13 +25,13 @@ MCP client / LLM
 Install from npm:
 
 ```bash
-queqiao extension install npm:queqiao-mcp --attach-all
+queqiao extension install npm:@tibame201020/queqiao-mcp --attach-all
 ```
 
 Or install into the Extension Hub first and attach selected Workers later:
 
 ```bash
-queqiao extension install npm:queqiao-mcp
+queqiao extension install npm:@tibame201020/queqiao-mcp
 queqiao extension attach dev.queqiao.mcp --worker windows
 ```
 
