@@ -1,5 +1,7 @@
 # @tibame201020/queqiao-mcp
 
+[English](https://github.com/tibame201020/queqiao-mcp/blob/main/README.md) | [繁體中文](https://github.com/tibame201020/queqiao-mcp/blob/main/README.zh-TW.md)
+
 Official MCP client extension for [Queqiao](https://github.com/tibame201020/Queqiao).
 
 `@tibame201020/queqiao-mcp` lets one Queqiao Worker connect to downstream MCP servers while Queqiao keeps a stable public `extension` proxy tool instead of expanding every downstream tool into the public manifest.
